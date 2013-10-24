@@ -45,6 +45,9 @@ using namespace std;
 namespace icke2063 {
 namespace common_cpp {
 
+/**
+ * Mutex Interface class
+ */
 class MutexInt {
 public:
 	MutexInt(){};
@@ -87,16 +90,31 @@ private:
  * The implementation has to create for each object of this class an own thread.
  */
 
+/**
+ * enumeration of WorkerThread states
+ */
 enum worker_status{
-	worker_idle=0x00,
-	worker_running=0x01,
-	worker_finished=0x02
+	worker_idle=0x00,   	//!< worker_idle
+	worker_running=0x01,	//!< worker_running
+	worker_finished=0x02	//!< worker_finished
 };
 class WorkerThreadInt {
 public:
+	/**
+	 * Standard Constructor
+	 * @param functor_queue: pointer to threadpool functor queue
+	 * @param functor_lock:  pointer to threadpool mutex object (type depend on implementation)
+	 */
 	WorkerThreadInt(deque<FunctorInt *> *functor_queue, MutexInt *functor_lock):
 		p_functor_queue(functor_queue),p_functor_lock(functor_lock),m_status(worker_idle){};
 	virtual ~WorkerThreadInt(){};
+
+	/**
+	 * Status of current WorkerThread
+	 * This Threadpool has the ability to create/destroy WorkerThread objects.
+	 * The current solution is to set a status value at each worker to let
+	 * the scheduler decide which worker can be destroyed.
+	 */
 	worker_status m_status;					//status of current thread
 
 protected:
@@ -151,9 +169,10 @@ public:
 	uint8_t getHighWatermark(void){return HighWatermark;}
 
 	/**
-	 * 	This function is used to create needed WorkerThreadInts
-	 * 	and to destroy (really) not needed WorkerThreadInts.
+	 * 	This function is used to create needed WorkerThread objects
+	 * 	and to destroy (really) not needed WorkerThread objects.
 	 * 	MUST be implemented by inherit class
+	 * 	@todo use function pointer instead of abstract function
 	 */
 	virtual void scheduler(void) = 0;
 

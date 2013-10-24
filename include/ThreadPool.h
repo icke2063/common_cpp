@@ -37,13 +37,16 @@ using namespace std;
 namespace icke2063 {
 namespace common_cpp {
 
+/**
+ * MutexInt implementation with boost::mutex
+ */
 class Mutex: public MutexInt {
 public:
 	Mutex(){m_mutex.reset(new boost::mutex());};
 	virtual ~Mutex(){};
 
 	/**
-	 * Getter for boost mutex object pointer
+	 * Getter for boost::mutex object pointer
 	 * @return pointer to boost mutex object
 	 */
 	virtual boost::mutex *getMutex(void){return m_mutex.get();}
