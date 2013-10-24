@@ -64,9 +64,14 @@ ThreadPool::ThreadPool() :
 
 ThreadPool::~ThreadPool() {
 	logger->info("enter ~ThreadPool");
-	running = false;
+	running = false;	//disable ThreadPool
 	if (m_scheduler_thread.get() && m_scheduler_thread->joinable())
 		m_scheduler_thread->join();
+
+
+	//disable/delete Workerthreads
+	//disable/delete queued Functors
+
 	logger->info("leave ~ThreadPool");
 }
 

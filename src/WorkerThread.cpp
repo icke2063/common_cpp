@@ -66,7 +66,7 @@ void WorkerThread::thread_function(void) {
 
 	while (m_running) {
 		if(m_worker_thread.get())m_worker_thread->yield();
-		if(p_functor_lock != NULL && ((Mutex*)(p_functor_lock))->getMutex() != NULL){
+		if(p_functor_lock != NULL && ((Mutex*)(p_functor_lock))->getMutex() != NULL){// get new functor from queue
 			boost::lock_guard<boost::mutex> lock(*((Mutex*)(p_functor_lock))->getMutex()); // lock before queue access
 
 			if (p_functor_queue != NULL && p_functor_queue->size() > 0) {
@@ -81,14 +81,11 @@ void WorkerThread::thread_function(void) {
 
 		if(curFunctor.get() != NULL){
 			//logger->debug("get next functor");
-			m_status = worker_running;
+			m_status = worker_running;		//
 			curFunctor->functor_function(); // call handling function
-			if(curFunctor->delete_after_run())
-				curFunctor.reset(NULL); 		// reset pointer
-			else
-				curFunctor.release();
+			curFunctor.reset(NULL); 		// reset pointer -> delete functor object
 		} else {
-			m_status = worker_idle;
+			m_status = worker_idle;			//
 		}
 		boost::this_thread::sleep(boost::posix_time::milliseconds(100));
 	}

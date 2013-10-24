@@ -66,21 +66,13 @@ public:
  */
 class FunctorInt {
 public:
-	FunctorInt(bool del=true):m_del(del){};
+	FunctorInt(){};
 	virtual ~FunctorInt(){};
 	/**
 	 * Function called by WorkerThread
 	 * @brief This function will be called by WorkerThreadInt of ThreadPool
 	 */
 	virtual void functor_function(void) = 0;
-
-	bool delete_after_run(void){return m_del;}
-
-private:
-	/**
-	 * flag to force deletion by workerthread after run
-	 */
-	bool m_del;
 };
 
 ///WorkerThread of ThreadPool
