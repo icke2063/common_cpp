@@ -10,4 +10,8 @@ set(SOURCE
 	src/WorkerThread.cpp
 	)
 
-add_library(${PROJECT_NAME} SHARED  ${SOURCE})
+add_library(${PROJECT_NAME}-shared SHARED  ${SOURCE})
+
+install(TARGETS ${PROJECT_NAME}-shared
+	LIBRARY DESTINATION lib
+)
