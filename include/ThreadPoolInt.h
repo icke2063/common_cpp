@@ -39,7 +39,7 @@
 #include <stdint.h>
 #include <deque>
 #include <set>
-#include <auto_ptr.h>
+#include <memory>
 using namespace std;
 
 namespace icke2063 {
@@ -94,10 +94,10 @@ class WorkerThreadInt {
 public:
 	/**
 	 * Standard Constructor
-	 * @param functor_queue: pointer to threadpool functor queue
-	 * @param functor_lock:  pointer to threadpool mutex object (type depend on implementation)
+	 * @param functor_queue: reference threadpool functor queue
+	 * @param functor_lock:  refernce to threadpool mutex object (type depend on implementation)
 	 */
-	WorkerThreadInt(deque<FunctorInt *> *functor_queue, MutexInt *functor_lock):
+	WorkerThreadInt(shared_ptr<deque<shared_ptr<FunctorInt>>> functor_queue, shared_ptr<MutexInt> functor_lock):
 		p_functor_queue(functor_queue),p_functor_lock(functor_lock),m_status(worker_idle){};
 	virtual ~WorkerThreadInt(){};
 
@@ -110,8 +110,8 @@ public:
 	worker_status m_status;					//status of current thread
 
 protected:
-	deque<FunctorInt *> *p_functor_queue;	//pointer to queue of ThreadPool functor list
-	MutexInt *p_functor_lock;				//pointer to lock for ThreadPool functor list
+	shared_ptr<deque<shared_ptr<FunctorInt>>> p_functor_queue;	//pointer to queue of ThreadPool functor list
+	shared_ptr<MutexInt> p_functor_lock;				//pointer to lock for ThreadPool functor list
 
 	/**
 	 * Abstract function which has to be implemented and used with
@@ -174,20 +174,20 @@ public:
 	 * 	IMPORTANT: don't forget to lock the queue with Mutex (depends on implementation)
 	 * @param work
 	 */
-	virtual void addFunctor(FunctorInt *work) = 0;
+	virtual void addFunctor(shared_ptr<FunctorInt> work) = 0;
 
 protected:
 	///list of used WorkerThreadInts
 	set<WorkerThreadInt *> 	m_workerThreads;
 
 	///lock worker queue
-	auto_ptr<MutexInt> 				m_worker_lock;
+	unique_ptr<MutexInt> 				m_worker_lock;
 
 	///list of waiting functors
-	deque<FunctorInt *> 		m_functor_queue;
+	shared_ptr<deque<shared_ptr<FunctorInt>>> 	m_functor_queue;
 
 	///lock functor queue
-	auto_ptr<MutexInt>				m_functor_lock;
+	shared_ptr<MutexInt>				m_functor_lock;
 
 private:
 	uint8_t LowWatermark;	//low count of worker threads

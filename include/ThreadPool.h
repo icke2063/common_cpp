@@ -2,7 +2,7 @@
  * @file   ThreadPool.h
  * @Author icke2063
  * @date   28.05.2013
- * @brief  ThreadPoolInt implementation with usage of boost threads, mutex,...
+ * @brief  ThreadPoolInt implementation with usage of c++11 threads, mutex,...
  *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
@@ -24,38 +24,39 @@
 #ifndef THREADPOOL_H_
 #define THREADPOOL_H_
 
-#include <auto_ptr.h>
+#include <memory>
+#include <mutex>
+#include <thread>
 using namespace std;
 
 //common_cpp
 #include <ThreadPoolInt.h>
 #include <Logger.h>
 
-//boost
-#include <boost/thread.hpp>
-
 namespace icke2063 {
 namespace common_cpp {
 
 /**
- * MutexInt implementation with boost::mutex
+ * MutexInt implementation with c++11::mutex
  */
 class Mutex: public MutexInt {
 public:
-	Mutex(){m_mutex.reset(new boost::mutex());};
+	Mutex(){
+	  m_mutex = shared_ptr<std::mutex>(new std::mutex());
+	}
 	virtual ~Mutex(){};
 
 	/**
-	 * Getter for boost::mutex object pointer
-	 * @return pointer to boost mutex object
+	 * Getter for c++11::mutex object pointer
+	 * @return pointer to c++11 mutex object
 	 */
-	virtual boost::mutex *getMutex(void){return m_mutex.get();}
+	virtual shared_ptr<std::mutex> getMutex(void){return m_mutex;}
 
 private:
 	/**
-	 * boost mutex object
+	 * mutex object
 	 */
-	auto_ptr<boost::mutex> m_mutex;
+	shared_ptr<std::mutex> m_mutex;
 };
 
 
@@ -73,7 +74,7 @@ public:
 	 * Add new functor object
 	 * @param work pointer to functor object
 	 */
-	virtual void addFunctor(FunctorInt *work);
+	virtual void addFunctor(shared_ptr<FunctorInt> work);
 
 private:
 	/**
@@ -87,7 +88,7 @@ private:
 	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
-	auto_ptr<boost::thread> m_scheduler_thread;
+	unique_ptr<std::thread> m_scheduler_thread;
 };
 
 } /* namespace common_cpp */

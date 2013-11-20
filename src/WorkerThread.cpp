@@ -21,15 +21,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#include <memory>
+#include <chrono>
+using namespace std;
+
 #include "WorkerThread.h"
-#include <boost/thread.hpp>
 
 namespace icke2063 {
 namespace common_cpp {
 
-WorkerThread::WorkerThread(deque<FunctorInt *> *functor_queue, MutexInt *functor_lock) :
-		WorkerThreadInt(functor_queue, functor_lock), m_running(true), curFunctor(
-				NULL) {
+WorkerThread::WorkerThread(shared_ptr<deque<shared_ptr<FunctorInt>>> functor_queue, shared_ptr<MutexInt> functor_lock) :
+		WorkerThreadInt(functor_queue, functor_lock), m_running(true) {
 	/**
 	 * Init Logging
 	 * - set category name
@@ -43,7 +45,7 @@ WorkerThread::WorkerThread(deque<FunctorInt *> *functor_queue, MutexInt *functor
 
 	logger->info("WorkerThread");
 
-	m_worker_thread.reset(new boost::thread(&WorkerThread::thread_function, this));	// create new scheduler thread											// save pointer of thread object
+	m_worker_thread.reset(new std::thread(&WorkerThread::thread_function, this));	// create new scheduler thread											// save pointer of thread object
 }
 
 void WorkerThread::stopThread(void){
@@ -51,13 +53,22 @@ void WorkerThread::stopThread(void){
 }
 
 WorkerThread::~WorkerThread() {
-	stopThread();
+int i=1;	
+  stopThread();
+
+	while(i++){
+	    std::this_thread::sleep_for(std::chrono::microseconds(1));
+	    if(m_status == worker_finished)break;
+	    if(i>100){
+	      logger->emerg("emergency exit: worker thread not joined");
+	      return;
+	    }
+	}
+	//at this point the worker thread should have ended -> join it
 	if(m_worker_thread.get() && m_worker_thread->joinable()){
 		m_worker_thread->join();
 	}
-	while(m_status != worker_finished){
-		usleep(1);
-	}
+	
 	logger->info("~WorkerThread");
 
 }
@@ -65,12 +76,17 @@ WorkerThread::~WorkerThread() {
 void WorkerThread::thread_function(void) {
 
 	while (m_running) {
-		if(m_worker_thread.get())m_worker_thread->yield();
-		if(p_functor_lock != NULL && ((Mutex*)(p_functor_lock))->getMutex() != NULL){// get new functor from queue
-			boost::lock_guard<boost::mutex> lock(*((Mutex*)(p_functor_lock))->getMutex()); // lock before queue access
-
+	  
+	  {
+	    	shared_ptr<FunctorInt>curFunctor;
+		//if(m_worker_thread.get())m_worker_thread->yield();
+		if(p_functor_lock != NULL && ((Mutex*)(p_functor_lock.get()))->getMutex() != NULL){// get new functor from queue
+		  
+		      shared_ptr<std::mutex> tmp_mutex = ((Mutex*)(p_functor_lock.get()))->getMutex(); 
+			std::lock_guard<std::mutex> lock(*tmp_mutex.get());// lock before queue access
+			  
 			if (p_functor_queue != NULL && p_functor_queue->size() > 0) {
-				curFunctor.reset(p_functor_queue->front()); // get next functor from queue
+				curFunctor = p_functor_queue->front(); // get next functor from queue
 				p_functor_queue->pop_front();				// remove functor from queue
 			}
 		} else {
@@ -78,16 +94,15 @@ void WorkerThread::thread_function(void) {
 			m_status = worker_idle;
 			return;
 		}
-
 		if(curFunctor.get() != NULL){
 			//logger->debug("get next functor");
 			m_status = worker_running;		//
 			curFunctor->functor_function(); // call handling function
-			curFunctor.reset(NULL); 		// reset pointer -> delete functor object
 		} else {
 			m_status = worker_idle;			//
 		}
-		boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
+	  }
 	}
 	m_status = worker_finished;
 	logger->debug("exit thread");

@@ -28,10 +28,8 @@
 #include <algorithm>
 #include <string>
 
-//boost
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/date_time/time_duration.hpp>
+#include <chrono>
+#include <thread>
 
 //common_cpp
 #include <ThreadPool.h>
@@ -55,10 +53,10 @@ ThreadPool::ThreadPool() :
 		//logger->addAppender(console);
 
 	logger->info("ThreadPool");
-
-	m_functor_lock.reset(new Mutex()); //init mutex for functor list
-	logger->debug("m_functor_lock.get():%x", m_functor_lock.get());
-	m_scheduler_thread.reset(new boost::thread(&ThreadPool::scheduler, this)); // create new scheduler thread
+	m_functor_queue = shared_ptr<deque<shared_ptr<FunctorInt>>>(new deque<shared_ptr<FunctorInt>>); //init functor list	;
+	m_functor_lock = shared_ptr<Mutex>(new Mutex()); //init mutex for functor list
+	
+	m_scheduler_thread.reset(new std::thread(&ThreadPool::scheduler, this)); // create new scheduler thread
 
 }
 
@@ -86,36 +84,34 @@ void ThreadPool::scheduler(void) {
 				m_workerThreads.size() + 1, this->getHighWatermark());
 		logger->debug("m_functor_lock.get()[%x] m_functor_queue[%x]", m_functor_lock.get(),
 				&m_functor_queue);
-		WorkerThread *newWorker = new WorkerThread(&m_functor_queue,
-				m_functor_lock.get());
+		WorkerThread *newWorker = new WorkerThread(m_functor_queue, m_functor_lock);
 		m_workerThreads.insert(newWorker);
 	}
 
 	while (running) {
-		m_scheduler_thread->yield();
+		//m_scheduler_thread->yield();
 
 		// check functor list
 		if (m_functor_lock.get() != NULL
 				&& ((Mutex*) (m_functor_lock.get()))->getMutex() != NULL) {
-			boost::lock_guard<boost::mutex> lock(
+			std::lock_guard<std::mutex> lock(
 					*((Mutex*) (m_functor_lock.get()))->getMutex()); // lock before queue access
 
-			logger->debug("m_functor_queue.size(): %d", m_functor_queue.size());
+			logger->debug("m_functor_queue.size(): %d", m_functor_queue->size());
 			logger->debug("m_workerThreads.size(): %d", m_workerThreads.size());
 			logger->debug("max_func_size: %d", max_func_size);
 
-			if (m_functor_queue.size() > max_func_size
+			if (m_functor_queue->size() > max_func_size
 					&& m_workerThreads.size() < this->getHighWatermark()) {
 				//add new worker thread
-				WorkerThread *newWorker = new WorkerThread(&m_functor_queue,
-						m_functor_lock.get());
+				WorkerThread *newWorker = new WorkerThread(m_functor_queue, m_functor_lock);
 				logger->debug("create new worker thread[0x%x] ondemand: %i of %i",newWorker,
 										m_workerThreads.size() + 1, this->getHighWatermark());
 				m_workerThreads.insert(newWorker);
 				max_func_size *= 2;
 			}
 
-			if (m_functor_queue.size() == 0
+			if (m_functor_queue->size() == 0
 					&& m_workerThreads.size() > this->getLowWatermark()) {
 				set<WorkerThreadInt *>::iterator workerThreads_it =
 						m_workerThreads.begin();
@@ -155,15 +151,16 @@ void ThreadPool::scheduler(void) {
 				++workerThreads_it;
 			}
 		}
-		boost::this_thread::sleep(boost::posix_time::milliseconds(1000));
+		
+		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 	}
 }
 
-void ThreadPool::addFunctor(FunctorInt *work) {
-	logger->debug("add Functor #%i", m_functor_queue.size() + 1);
+void ThreadPool::addFunctor(shared_ptr<FunctorInt> work) {
+	logger->debug("add Functor #%i", m_functor_queue->size() + 1);
 	Mutex *tmp = (Mutex *)m_functor_lock.get();
-	boost::lock_guard<boost::mutex> lock(*tmp->getMutex());
-	m_functor_queue.push_back(work);
+	std::lock_guard<std::mutex> lock(*tmp->getMutex());
+	m_functor_queue->push_back(work);
 }
 
 } /* namespace common_cpp */

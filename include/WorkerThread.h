@@ -2,7 +2,7 @@
  * @file   WorkerThread.h
  * @Author icke2063
  * @date   31.05.2013
- * @brief  WorkerThreadInt implementation with boost threads
+ * @brief  WorkerThreadInt implementation with c++11 threads
  *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
@@ -25,11 +25,9 @@
 #define WORKERTHREAD_H_
 
 //generic
-#include <auto_ptr.h>
+#include <memory>
+#include <thread>
 using namespace std;
-
-//boost
-#include <boost/thread.hpp>
 
 //common_cpp
 #include <ThreadPool.h>
@@ -40,7 +38,7 @@ namespace common_cpp {
 
 class WorkerThread: public WorkerThreadInt ,public Logger{
 public:
-	WorkerThread(deque<FunctorInt *> *functor_queue, MutexInt *functor_lock);
+	WorkerThread(shared_ptr<deque<shared_ptr<FunctorInt>>> functor_queue, shared_ptr<MutexInt> functor_lock);
 
 	virtual ~WorkerThread();
 
@@ -49,16 +47,14 @@ public:
 
 private:
 	/**
-	 * boost worker thread object
+	 * worker thread object
 	 */
-	auto_ptr<boost::thread> m_worker_thread;
+	unique_ptr<std::thread> m_worker_thread;
 	/**
 	 * running flag for worker thread
 	 *
 	 */
 	bool m_running;
-
-	auto_ptr<FunctorInt>curFunctor;
 
 	/**
 	 * thread function for worker thread
