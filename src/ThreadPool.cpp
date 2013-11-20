@@ -73,8 +73,7 @@ ThreadPool::~ThreadPool() {
 	logger->info("leave ~ThreadPool");
 }
 
-void ThreadPool::scheduler(void) {
-	unsigned int max_func_size = 1;
+void ThreadPool::pre(void){
 
 	logger->info("ThreadPool scheduler thread");
 
@@ -88,9 +87,11 @@ void ThreadPool::scheduler(void) {
 		m_workerThreads.insert(newWorker);
 	}
 
-	while (running) {
-		//m_scheduler_thread->yield();
+  
+}
 
+void ThreadPool::loop(void){
+	unsigned int max_func_size = 1;
 		// check functor list
 		if (m_functor_lock.get() != NULL
 				&& ((Mutex*) (m_functor_lock.get()))->getMutex() != NULL) {
@@ -147,13 +148,32 @@ void ThreadPool::scheduler(void) {
 					delete(tmp);
 					m_workerThreads.erase(workerThreads_it);
 					workerThreads_it = m_workerThreads.begin();
+					continue;
 				}
 				++workerThreads_it;
 			}
 		}
 		
-		std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-	}
+  
+}
+
+void ThreadPool::past(void){
+
+  
+}
+
+
+void ThreadPool::scheduler(void) {
+
+    pre();
+    while (running) {
+		//m_scheduler_thread->yield();
+      loop();
+      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+    }
+
+    past();
+
 }
 
 void ThreadPool::addFunctor(shared_ptr<FunctorInt> work) {
@@ -161,6 +181,60 @@ void ThreadPool::addFunctor(shared_ptr<FunctorInt> work) {
 	Mutex *tmp = (Mutex *)m_functor_lock.get();
 	std::lock_guard<std::mutex> lock(*tmp->getMutex());
 	m_functor_queue->push_back(work);
+}
+
+DelayedThreadPool::DelayedThreadPool(){
+    ///list of delayed functors
+    m_delayed_queue =  shared_ptr<deque<shared_ptr<DelayedFunctorInt>>>(new deque<shared_ptr<DelayedFunctorInt>>);
+
+    //lock functor queue
+    m_delayed_lock = shared_ptr<MutexInt>(new Mutex());	
+    
+}
+
+
+void DelayedThreadPool::loop(void){
+	  //std::mutex *mut = (Mutex *)m_delayed_lock.get()
+	  
+	  lock_guard<std::mutex> lock( *(((Mutex*)(m_delayed_lock.get()))->getMutex().get()) );		//lock 
+	  
+	  struct timeval timediff, tnow;
+	  if( gettimeofday(&tnow, 0) != 0){
+	     ThreadPool::loop();	//call scheduler from superclass
+	     return;
+	  }
+	    long msec;
+	  
+	  /**
+	   * @todo use foreach loop
+	   */
+	  deque<shared_ptr<DelayedFunctorInt>>::iterator delayed_it = m_delayed_queue->begin();
+	  while(delayed_it != m_delayed_queue->end()){
+	      
+	    msec=(tnow.tv_sec-(*delayed_it)->getDeadline().tv_sec)*1000;
+	    msec+=(tnow.tv_usec-(*delayed_it)->getDeadline().tv_usec)/1000;	    
+	    
+	    if(msec >= 0){
+	      /*
+	      * add current functor to queue & remove from delayed queue
+	      */
+	      addFunctor((*delayed_it)->getFunctor());
+	      delayed_it = m_delayed_queue->erase(delayed_it);
+	      continue;
+	    }
+	    ++delayed_it;
+	  }
+	  ThreadPool::loop();	//call scheduler from superclass
+	  
+	}
+
+void DelayedThreadPool::addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline){
+	logger->debug("add DelayedFunctor #%i", m_delayed_queue->size() + 1);
+	Mutex *tmp = (Mutex *)m_delayed_lock.get();
+	std::lock_guard<std::mutex> lock(*tmp->getMutex());
+	shared_ptr<DelayedFunctorInt> tmp_functor = shared_ptr<DelayedFunctorInt>(new DelayedFunctorInt(work, deadline));
+	
+	m_delayed_queue->push_back(tmp_functor);
 }
 
 } /* namespace common_cpp */

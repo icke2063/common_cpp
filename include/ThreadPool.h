@@ -24,6 +24,8 @@
 #ifndef THREADPOOL_H_
 #define THREADPOOL_H_
 
+#include <sys/time.h>
+
 #include <memory>
 #include <mutex>
 #include <thread>
@@ -64,12 +66,11 @@ class ThreadPool: public ThreadPoolInt ,public Logger{
 public:
 	ThreadPool();
 	virtual ~ThreadPool();
-	/**
-	 * Default scheduler thread function
-	 * - create/destroy WorkerThreads on demand
-	 */
-	virtual void scheduler(void);
 
+	virtual void pre(void);
+	virtual void loop(void);
+	virtual void past(void);
+	
 	/**
 	 * Add new functor object
 	 * @param work pointer to functor object
@@ -77,6 +78,12 @@ public:
 	virtual void addFunctor(shared_ptr<FunctorInt> work);
 
 private:
+	/**
+	 * Default scheduler thread function
+	 * - create/destroy WorkerThreads on demand
+	 */
+	void scheduler(void);
+
 	/**
 	 * running flag for scheduler thread
 	 *
@@ -90,6 +97,60 @@ private:
 	 */
 	unique_ptr<std::thread> m_scheduler_thread;
 };
+
+ class DelayedFunctorInt{
+ public:
+   /**
+    * default constructor
+    * - set deadline
+    */
+   DelayedFunctorInt(shared_ptr<FunctorInt> functor, struct timeval deadline):
+   m_functor(functor),m_deadline(deadline){}
+   
+   
+   /**
+    * get functor deadline
+    * - after this timestamp functor should be activated
+    */
+   struct timeval getDeadline(){return m_deadline;}
+   
+   /**
+    * get stored FunctorInt
+    */
+   shared_ptr<FunctorInt> getFunctor(){return m_functor;}
+ 
+ private:   
+   shared_ptr<FunctorInt> m_functor;
+   /**
+    * abslute timestamp after this deadline the functor should be added to threadpool
+    * 
+    */
+   struct timeval m_deadline;
+};
+
+class DelayedThreadPool: public ThreadPool{ 
+public:  
+	DelayedThreadPool();
+	virtual ~DelayedThreadPool(){}
+
+	virtual void loop(void);
+	
+	/**
+	 * Add new functor object
+	 * @param work pointer to functor object
+	 */
+	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
+
+private:
+  ///list of delayed functors
+  shared_ptr<deque<shared_ptr<DelayedFunctorInt>>> 	m_delayed_queue;
+
+  ///lock functor queue
+  shared_ptr<MutexInt>					m_delayed_lock;
+  
+};
+
+
 
 } /* namespace common_cpp */
 } /* namespace icke2063 */

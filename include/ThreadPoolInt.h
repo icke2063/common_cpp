@@ -178,7 +178,7 @@ public:
 
 protected:
 	///list of used WorkerThreadInts
-	set<WorkerThreadInt *> 	m_workerThreads;
+	set<WorkerThreadInt *> 				m_workerThreads;
 
 	///lock worker queue
 	unique_ptr<MutexInt> 				m_worker_lock;
