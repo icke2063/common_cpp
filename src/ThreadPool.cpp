@@ -30,6 +30,7 @@
 
 #include <chrono>
 #include <thread>
+#include <boost/concept_check.hpp>
 
 //common_cpp
 #include <ThreadPool.h>
@@ -38,8 +39,7 @@
 namespace icke2063 {
 namespace common_cpp {
 
-ThreadPool::ThreadPool() :
-		running(true) {
+ThreadPool::ThreadPool(){
 	/**
 	 * Init Logging
 	 * - set category name
@@ -50,157 +50,176 @@ ThreadPool::ThreadPool() :
 	logger = &log4cpp::Category::getInstance(std::string("ThreadPool"));
 	logger->setPriority(log4cpp::Priority::DEBUG);
 	if (console)
-		//logger->addAppender(console);
+		logger->addAppender(console);
 
 	logger->info("ThreadPool");
 	m_functor_queue = shared_ptr<deque<shared_ptr<FunctorInt>>>(new deque<shared_ptr<FunctorInt>>); //init functor list	;
 	m_functor_lock = shared_ptr<Mutex>(new Mutex()); //init mutex for functor list
+	m_worker_lock = shared_ptr<Mutex>(new Mutex()); //init mutex for worker list
 	
-	m_scheduler_thread.reset(new std::thread(&ThreadPool::scheduler, this)); // create new scheduler thread
+	m_main_thread.reset(new thread(&ThreadPool::main_thread_func, this)); // create new main thread
 
 }
 
 ThreadPool::~ThreadPool() {
 	logger->info("enter ~ThreadPool");
-	running = false;	//disable ThreadPool
-	if (m_scheduler_thread.get() && m_scheduler_thread->joinable())
-		m_scheduler_thread->join();
+	m_main_running = false;	//disable ThreadPool
+	if (m_main_thread.get() && m_main_thread->joinable())
+		m_main_thread->join();
 
-
-	//disable/delete Workerthreads
-	//disable/delete queued Functors
 
 	logger->info("leave ~ThreadPool");
 }
 
-void ThreadPool::pre(void){
-
-	logger->info("ThreadPool scheduler thread");
-
-	//autocreate default count of worker threads
-	while (m_workerThreads.size() < this->getLowWatermark()) {
-		logger->debug("autocreate new worker thread: %i of %i",
-				m_workerThreads.size() + 1, this->getHighWatermark());
-		logger->debug("m_functor_lock.get()[%x] m_functor_queue[%x]", m_functor_lock.get(),
-				&m_functor_queue);
-		WorkerThread *newWorker = new WorkerThread(m_functor_queue, m_functor_lock);
-		m_workerThreads.insert(newWorker);
-	}
-
-  
+void ThreadPool::main_pre(void){ 
 }
 
-void ThreadPool::loop(void){
-	unsigned int max_func_size = 1;
-		// check functor list
-		if (m_functor_lock.get() != NULL
-				&& ((Mutex*) (m_functor_lock.get()))->getMutex() != NULL) {
-			std::lock_guard<std::mutex> lock(
-					*((Mutex*) (m_functor_lock.get()))->getMutex()); // lock before queue access
-
-			logger->debug("m_functor_queue.size(): %d", m_functor_queue->size());
-			logger->debug("m_workerThreads.size(): %d", m_workerThreads.size());
-			logger->debug("max_func_size: %d", max_func_size);
-
-			if (m_functor_queue->size() > max_func_size
-					&& m_workerThreads.size() < this->getHighWatermark()) {
-				//add new worker thread
-				WorkerThread *newWorker = new WorkerThread(m_functor_queue, m_functor_lock);
-				logger->debug("create new worker thread[0x%x] ondemand: %i of %i",newWorker,
-										m_workerThreads.size() + 1, this->getHighWatermark());
-				m_workerThreads.insert(newWorker);
-				max_func_size *= 2;
-			}
-
-			if (m_functor_queue->size() == 0
-					&& m_workerThreads.size() > this->getLowWatermark()) {
-				set<WorkerThreadInt *>::iterator workerThreads_it =
-						m_workerThreads.begin();
-				while (workerThreads_it != m_workerThreads.end()) {
-					if ((*workerThreads_it)->m_status == worker_idle) {
-						WorkerThread *tmp = (WorkerThread*) (*workerThreads_it);
-						logger->debug("finish worker thread[0x%x]: (%i of %i)",tmp,
-								m_workerThreads.size(),
-								this->getHighWatermark());
-						tmp->stopThread();
-						max_func_size /= 2;
-						if (max_func_size == 0)
-							max_func_size = 1;
-						break;
-					}
-					++workerThreads_it;
-				}
-			}
-
-		} else {
-			logger->error("m_functor_lock.get() == NULL");
-		}
-
-		{//destroy finished worker
-			set<WorkerThreadInt *>::iterator workerThreads_it =
-					m_workerThreads.begin();
-			while (workerThreads_it != m_workerThreads.end()) {
-				if ((*workerThreads_it)->m_status == worker_finished) {
-					WorkerThread *tmp = (WorkerThread*) (*workerThreads_it);
-					logger->debug("delete worker thread[0x%x]: (%i of %i)",tmp,
-							m_workerThreads.size(), this->getHighWatermark());
-
-					delete(tmp);
-					m_workerThreads.erase(workerThreads_it);
-					workerThreads_it = m_workerThreads.begin();
-					continue;
-				}
-				++workerThreads_it;
-			}
-		}
-		
-  
+void ThreadPool::main_loop(void){
+  handleWorkerCount();
+  checkDelayedQueue();
 }
 
-void ThreadPool::past(void){
-
-  
+void ThreadPool::main_past(void){
 }
 
-
-void ThreadPool::scheduler(void) {
-
-    pre();
-    while (running) {
-		//m_scheduler_thread->yield();
-      loop();
-      std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-    }
-
-    past();
-
-}
-
-void ThreadPool::addFunctor(shared_ptr<FunctorInt> work) {
+void ThreadPool::addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode){
 	logger->debug("add Functor #%i", m_functor_queue->size() + 1);
 	Mutex *tmp = (Mutex *)m_functor_lock.get();
-	std::lock_guard<std::mutex> lock(*tmp->getMutex());
-	m_functor_queue->push_back(work);
+	
+	shared_ptr<Functor> tmp_functor = dynamic_pointer_cast<Functor>(work);
+	if(!tmp_functor.get())return;
+	
+	switch(add_mode){
+	  case TPI_ADD_LiFo:
+	  {
+	   std::lock_guard<std::mutex> lock(*tmp->getMutex());
+	   tmp_functor->setPriority(100);	//set highest priority to hold list in order	
+	    m_functor_queue->push_front(work);
+	  }
+	    break;
+	  case TPI_ADD_FiFo:
+	  {
+	   std::lock_guard<std::mutex> lock(*tmp->getMutex());
+	   tmp_functor->setPriority(0);	//set lowest priority to hold list in order 
+	   m_functor_queue->push_back(work);
+	  }
+	  case TPI_ADD_Prio:
+	  default:
+	    addPrioFunctor(tmp_functor); 
+	}
 }
 
-DelayedThreadPool::DelayedThreadPool(){
+void ThreadPool::addPrioFunctor(shared_ptr<PrioFunctorInt> work){
+  logger->debug("add priority Functor #%i", m_functor_queue->size() + 1);
+  Mutex *tmp = (Mutex *)m_functor_lock.get();
+  std::lock_guard<std::mutex> lock(*tmp->getMutex());
+  
+  shared_ptr<FunctorInt> addable = dynamic_pointer_cast<FunctorInt>(work);
+  if(!addable.get())return;
+  
+  deque<shared_ptr<FunctorInt>>::iterator queue_it = m_functor_queue->begin();
+  while(queue_it != m_functor_queue->end()){
+    
+    {
+      shared_ptr<PrioFunctorInt> queue_item = dynamic_pointer_cast<PrioFunctorInt>(*queue_it);
+      shared_ptr<PrioFunctorInt> param_item = dynamic_pointer_cast<PrioFunctorInt>(work);
+      
+      if(queue_item.get() && param_item.get()){
+	if(queue_item->getPriority() < param_item->getPriority()){
+	  m_functor_queue->insert(queue_it,addable);	//insert before
+	  return;
+	}
+      }
+    }
+    ++queue_it;
+  }
+  // not inserted yet -> push it at the end
+  m_functor_queue->push_back(addable);
+  
+  }
+
+bool ThreadPool::addWorker( void ){
+  
+  if(m_worker_lock.get()){
+    std::lock_guard<std::mutex> lock(*((Mutex*) (m_worker_lock.get()))->getMutex()); // lock before worker access
+    shared_ptr<WorkerThread> newWorker = shared_ptr<WorkerThread>(new WorkerThread(m_functor_queue, m_functor_lock));
+    m_workerThreads.push_back(newWorker);  
+    logger->debug("create new worker thread[0x%x]",newWorker.get());
+    return true;  
+  } 
+  return false;
+    
+}
+  
+void ThreadPool::handleWorkerCount(void){
+  // check functor list
+  if (m_functor_lock.get() != NULL && ((Mutex*) (m_functor_lock.get()))->getMutex() != NULL) {
+    std::lock_guard<std::mutex> lock(*((Mutex*) (m_functor_lock.get()))->getMutex()); // lock before queue access
+
+    logger->debug("m_functor_queue.size(): %d", m_functor_queue->size());
+    logger->debug("m_workerThreads.size(): %d", m_workerThreads.size());
+    logger->debug("lowWatermark(): %d", getLowWatermark());
+    logger->debug("HighWatermark(): %d", getHighWatermark());
+    logger->debug("max_queue_size: %d", max_queue_size);
+
+    /* add needed worker threads */
+    while (m_workerThreads.size() < getLowWatermark()) {
+      //add new worker thread
+      logger->debug("try add worker\n");
+      if(!addWorker())break;
+      logger->debug("new worker (under low): %i of %i", m_workerThreads.size(), getHighWatermark());
+    }
+
+    /* add ondemand worker threads */
+    if (m_functor_queue->size() > max_queue_size && m_workerThreads.size() < getHighWatermark()) {
+      //added new worker thread
+      if(addWorker()){
+	logger->debug("new worker (ondemand): %i of %i", m_workerThreads.size(), getHighWatermark());
+	}
+      }
+
+  /* remove worker threads */
+  if (m_functor_queue->size() == 0 && m_workerThreads.size() > getLowWatermark()) {
+    list<shared_ptr<WorkerThreadInt>>::iterator workerThreads_it = m_workerThreads.begin();
+    while (workerThreads_it != m_workerThreads.end()) {
+	if ((*workerThreads_it)->m_status == worker_idle) {
+	  shared_ptr<WorkerThread> tmp = dynamic_pointer_cast<WorkerThread> (*workerThreads_it);
+	  logger->debug("try finish worker thread[0x%x]: (%i of %i)",tmp.get(), m_workerThreads.size(), getHighWatermark());
+	  if(tmp.get()){ 
+	    tmp->stopThread();
+	    m_workerThreads.erase(workerThreads_it);
+	    break;
+	  }
+	}
+	++workerThreads_it;
+    }
+  }
+
+} else {
+  logger->error("m_functor_lock.get() == NULL");
+}  
+  
+  max_queue_size = (1<<m_workerThreads.size());			//calc new maximum waiting functor count
+}
+	
+DelayedPoolInt::DelayedPoolInt(){
     ///list of delayed functors
     m_delayed_queue =  shared_ptr<deque<shared_ptr<DelayedFunctorInt>>>(new deque<shared_ptr<DelayedFunctorInt>>);
 
     //lock functor queue
     m_delayed_lock = shared_ptr<MutexInt>(new Mutex());	
-    
 }
 
 
-void DelayedThreadPool::loop(void){
+void ThreadPool::checkDelayedQueue(void){
 	  //std::mutex *mut = (Mutex *)m_delayed_lock.get()
 	  
 	  lock_guard<std::mutex> lock( *(((Mutex*)(m_delayed_lock.get()))->getMutex().get()) );		//lock 
 	  
+	  logger->debug("m_delayed_queue.size():%d\n",m_delayed_queue->size());
+	  
 	  struct timeval timediff, tnow;
 	  if( gettimeofday(&tnow, 0) != 0){
-	     ThreadPool::loop();	//call scheduler from superclass
 	     return;
 	  }
 	    long msec;
@@ -224,11 +243,10 @@ void DelayedThreadPool::loop(void){
 	    }
 	    ++delayed_it;
 	  }
-	  ThreadPool::loop();	//call scheduler from superclass
 	  
 	}
 
-void DelayedThreadPool::addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline){
+void ThreadPool::addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline){
 	logger->debug("add DelayedFunctor #%i", m_delayed_queue->size() + 1);
 	Mutex *tmp = (Mutex *)m_delayed_lock.get();
 	std::lock_guard<std::mutex> lock(*tmp->getMutex());

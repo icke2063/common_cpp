@@ -32,7 +32,10 @@
 using namespace std;
 
 //common_cpp
-#include <ThreadPoolInt.h>
+#include <ThreadPoolInt/BasePoolInt.h>
+#include <ThreadPoolInt/DelayedPoolInt.h>
+#include <ThreadPoolInt/DynamicPoolInt.h>
+#include <ThreadPoolInt/PrioPoolInt.h>
 #include <Logger.h>
 
 namespace icke2063 {
@@ -61,96 +64,53 @@ private:
 	shared_ptr<std::mutex> m_mutex;
 };
 
+class Functor:public FunctorInt,
+	      public PrioFunctorInt{  
+public:
+	Functor(){};
+	virtual ~Functor(){};
 
-class ThreadPool: public ThreadPoolInt ,public Logger{
+};
+
+class ThreadPool: public BasePoolInt,
+		  public DelayedPoolInt,
+		  public DynamicPoolInt,
+		  public Logger{
 public:
 	ThreadPool();
 	virtual ~ThreadPool();
-
-	virtual void pre(void);
-	virtual void loop(void);
-	virtual void past(void);
+	
+	virtual bool addWorker( void );
 	
 	/**
 	 * Add new functor object
 	 * @param work pointer to functor object
 	 */
-	virtual void addFunctor(shared_ptr<FunctorInt> work);
-
+	virtual void addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_Default);
+	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
+	virtual void addPrioFunctor(shared_ptr<PrioFunctorInt> work);
 private:
-	/**
-	 * Default scheduler thread function
-	 * - create/destroy WorkerThreads on demand
-	 */
-	void scheduler(void);
-
-	/**
-	 * running flag for scheduler thread
-	 *
-	 */
-	bool running;
-
+  
+  	/* function called before main thread loop */
+	virtual void main_pre(void);
+	/* function called within main thread loop */
+	virtual void main_loop(void);
+	/* function called after main thread loop */
+	virtual void main_past(void);
+  
 	/**
 	 * Scheduler is used for creating and scheduling the WorkerThreads.
 	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
 	 * - on low usage and many created threads -> delete some to save resources
 	 */
-	unique_ptr<std::thread> m_scheduler_thread;
-};
-
- class DelayedFunctorInt{
- public:
-   /**
-    * default constructor
-    * - set deadline
-    */
-   DelayedFunctorInt(shared_ptr<FunctorInt> functor, struct timeval deadline):
-   m_functor(functor),m_deadline(deadline){}
-   
-   
-   /**
-    * get functor deadline
-    * - after this timestamp functor should be activated
-    */
-   struct timeval getDeadline(){return m_deadline;}
-   
-   /**
-    * get stored FunctorInt
-    */
-   shared_ptr<FunctorInt> getFunctor(){return m_functor;}
- 
- private:   
-   shared_ptr<FunctorInt> m_functor;
-   /**
-    * abslute timestamp after this deadline the functor should be added to threadpool
-    * 
-    */
-   struct timeval m_deadline;
-};
-
-class DelayedThreadPool: public ThreadPool{ 
-public:  
-	DelayedThreadPool();
-	virtual ~DelayedThreadPool(){}
-
-	virtual void loop(void);
+	unique_ptr<std::thread> m_main_thread;
 	
-	/**
-	 * Add new functor object
-	 * @param work pointer to functor object
-	 */
-	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
-
-private:
-  ///list of delayed functors
-  shared_ptr<deque<shared_ptr<DelayedFunctorInt>>> 	m_delayed_queue;
-
-  ///lock functor queue
-  shared_ptr<MutexInt>					m_delayed_lock;
-  
+	/* DynamicPoolInt */
+	virtual void handleWorkerCount(void);
+	
+	/* DelayedPoolInt */
+	virtual void checkDelayedQueue(void);
 };
-
-
 
 } /* namespace common_cpp */
 } /* namespace icke2063 */

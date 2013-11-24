@@ -9,6 +9,8 @@ ADD_DEFINITIONS(
 
 #default includes
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/ThreadPoolInt)
+
 
 set(SOURCE
 	src/Logger.cpp
@@ -21,3 +23,4 @@ add_library(${PROJECT_NAME}-shared SHARED  ${SOURCE})
 install(TARGETS ${PROJECT_NAME}-shared
 	LIBRARY DESTINATION lib
 )
+add_subdirectory(include/ThreadPoolInt)

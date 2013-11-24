@@ -53,10 +53,12 @@ void WorkerThread::stopThread(void){
 }
 
 WorkerThread::~WorkerThread() {
-int i=1;	
+int i=1;
+logger->info("begin ~WorkerThread");
   stopThread();
 
-	while(i++){
+/*
+    while(i++){
 	    std::this_thread::sleep_for(std::chrono::microseconds(1));
 	    if(m_status == worker_finished)break;
 	    if(i>100){
@@ -64,12 +66,13 @@ int i=1;
 	      return;
 	    }
 	}
+*/
 	//at this point the worker thread should have ended -> join it
 	if(m_worker_thread.get() && m_worker_thread->joinable()){
 		m_worker_thread->join();
 	}
 	
-	logger->info("~WorkerThread");
+	logger->info("leave ~WorkerThread");
 
 }
 
@@ -84,6 +87,7 @@ void WorkerThread::thread_function(void) {
 		  
 		      shared_ptr<std::mutex> tmp_mutex = ((Mutex*)(p_functor_lock.get()))->getMutex(); 
 			std::lock_guard<std::mutex> lock(*tmp_mutex.get());// lock before queue access
+			if(!m_running)return;	//running mode changed -> exit thread
 			  
 			if (p_functor_queue != NULL && p_functor_queue->size() > 0) {
 				curFunctor = p_functor_queue->front(); // get next functor from queue
