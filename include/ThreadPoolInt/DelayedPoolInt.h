@@ -2,9 +2,10 @@
  * @file   DelayedThreadPool.h
  * @Author icke2063
  * @date   23.11.2013
- * @brief  Interface for the delayed Threadpool extension
+ * @brief  	Interface for the delayed Threadpool extension
  * 		The idea ist to have a extra list with Functor objects and a deadline timestamp.
  * 		If this deadline is over the Functor has to be added to normal Threadpool queue.
+ * The function to check the timestamps has to be called continously.
  *
  * Copyright © 2013 icke2063 <icke2063@gmail.com>
  *
@@ -28,9 +29,12 @@
 
 #include <sys/time.h>
 
-#include <memory>
-#include <mutex>
-using namespace std;
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+  #include <memory>
+  #include <mutex>
+  using namespace std;
+#endif
+
 
 #include "BasePoolInt.h"
 
@@ -42,6 +46,7 @@ class DelayedFunctorInt{
  public:
    /**
     * default constructor
+    * - set FunctorInt object
     * - set deadline
     */
    DelayedFunctorInt(shared_ptr<FunctorInt> functor, struct timeval deadline):
@@ -85,13 +90,14 @@ public:
 	 * @param work pointer to functor object
 	 */
 	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline) = 0;
+	size_t getDQueueCount(){return m_delayed_queue.get()?m_delayed_queue->size():0;}
 
 protected:
   ///list of delayed functors
-  shared_ptr<deque<shared_ptr<DelayedFunctorInt>>> 	m_delayed_queue;
+  shared_ptr<std::deque<shared_ptr<DelayedFunctorInt> > > 	m_delayed_queue;
 
   ///lock functor queue
-  shared_ptr<MutexInt>					m_delayed_lock;
+  shared_ptr<mutex>					m_delayed_lock;
   
 };
 } /* namespace common_cpp */

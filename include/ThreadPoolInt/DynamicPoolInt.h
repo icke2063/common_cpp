@@ -26,13 +26,16 @@
 
 #include <sys/time.h>
 
-#include <memory>
-#include <mutex>
-#include <thread>
-using namespace std;
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+  #include <memory>
+  #include <thread>
+  #include <mutex>
+  using namespace std;
+#endif
+
 
 #ifndef WORKERTHREAD_MAX
-	#define WORKERTHREAD_MAX	30
+	#define WORKERTHREAD_MAX	60
 #endif
 
 namespace icke2063 {
@@ -47,26 +50,26 @@ public:
 	
 	/**
 	 * set low watermark
-	 * @param low: low count of WorkerThreadInts
+	 * @param low: low count of WorkerThreads
 	 */
-	void setLowWatermark(uint8_t low) {LowWatermark = ((low < HighWatermark)) ? low : HighWatermark;}
+	void setLowWatermark(uint16_t low) {LowWatermark = ((low < HighWatermark)) ? low : HighWatermark;}
 	/**
 	 * get low count of WorkerThreads
 	 * @return lowWatermark
 	 */
-	uint8_t getLowWatermark(void){return LowWatermark;}
+	uint16_t getLowWatermark(void){return LowWatermark;}
 
 	/**
 	 * set high watermark
 	 * @param high: high count of WorkerThreadInts
 	 */
-	void setHighWatermark(uint8_t high){HighWatermark = ((high > LowWatermark) && (high < WORKERTHREAD_MAX)) ? high : WORKERTHREAD_MAX;}
+	void setHighWatermark(uint16_t high){HighWatermark = ((high > LowWatermark) && (high < WORKERTHREAD_MAX)) ? high : WORKERTHREAD_MAX;}
 
 	/**
 	 * Get high count of WorkerThreads
 	 * @return highWatermark
 	 */
-	uint8_t getHighWatermark(void){return HighWatermark;}
+	uint16_t getHighWatermark(void){return HighWatermark;}
 
 protected:
   	/**
@@ -76,10 +79,10 @@ protected:
 	 * 	@todo use function pointer instead of abstract function
 	 */
 	virtual void handleWorkerCount(void) = 0;
-	unsigned int max_queue_size;
+	long max_queue_size;
 private:
-  	uint8_t LowWatermark;	//low count of worker threads
-	uint8_t HighWatermark;	//high count of worker threads
+  	uint16_t LowWatermark;	//low count of worker threads
+	uint16_t HighWatermark;	//high count of worker threads
 };
 } /* namespace common_cpp */
 } /* namespace icke2063 */

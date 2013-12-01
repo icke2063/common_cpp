@@ -26,10 +26,14 @@
 
 #include <sys/time.h>
 
-#include <memory>
-#include <mutex>
-#include <thread>
-using namespace std;
+
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+  #include <memory>
+  #include <chrono>
+  #include <thread>
+  #include <mutex>
+  using namespace std;
+#endif
 
 //common_cpp
 #include <ThreadPoolInt/BasePoolInt.h>
@@ -40,29 +44,6 @@ using namespace std;
 
 namespace icke2063 {
 namespace common_cpp {
-
-/**
- * MutexInt implementation with c++11::mutex
- */
-class Mutex: public MutexInt {
-public:
-	Mutex(){
-	  m_mutex = shared_ptr<std::mutex>(new std::mutex());
-	}
-	virtual ~Mutex(){};
-
-	/**
-	 * Getter for c++11::mutex object pointer
-	 * @return pointer to c++11 mutex object
-	 */
-	virtual shared_ptr<std::mutex> getMutex(void){return m_mutex;}
-
-private:
-	/**
-	 * mutex object
-	 */
-	shared_ptr<std::mutex> m_mutex;
-};
 
 class Functor:public FunctorInt,
 	      public PrioFunctorInt{  
@@ -80,15 +61,13 @@ public:
 	ThreadPool();
 	virtual ~ThreadPool();
 	
-	virtual bool addWorker( void );
-	
 	/**
 	 * Add new functor object
 	 * @param work pointer to functor object
 	 */
-	virtual void addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_Default);
+	virtual bool addFunctor(shared_ptr<FunctorInt> work, uint8_t add_mode = TPI_ADD_Default);
 	virtual void addDelayedFunctor(shared_ptr<FunctorInt> work, struct timeval deadline);
-	virtual void addPrioFunctor(shared_ptr<PrioFunctorInt> work);
+	virtual bool addPrioFunctor(shared_ptr<PrioFunctorInt> work);
 private:
   
   	/* function called before main thread loop */
@@ -97,13 +76,7 @@ private:
 	virtual void main_loop(void);
 	/* function called after main thread loop */
 	virtual void main_past(void);
-  
-	/**
-	 * Scheduler is used for creating and scheduling the WorkerThreads.
-	 * - on high usage (many unhandled functors in queue) create new threads until HighWatermark limit
-	 * - on low usage and many created threads -> delete some to save resources
-	 */
-	unique_ptr<std::thread> m_main_thread;
+
 	
 	/* DynamicPoolInt */
 	virtual void handleWorkerCount(void);

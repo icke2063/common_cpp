@@ -24,10 +24,12 @@
 #ifndef WORKERTHREAD_H_
 #define WORKERTHREAD_H_
 
-//generic
-#include <memory>
-#include <thread>
-using namespace std;
+#if defined(__GXX_EXPERIMENTAL_CXX0X__) || (__cplusplus >= 201103L)
+  #include <memory>
+  #include <thread>
+  using namespace std;
+#endif
+
 
 //common_cpp
 #include <ThreadPool.h>
@@ -38,31 +40,12 @@ namespace common_cpp {
 
 class WorkerThread: public WorkerThreadInt ,public Logger{
 public:
-	WorkerThread(shared_ptr<deque<shared_ptr<FunctorInt>>> functor_queue, shared_ptr<MutexInt> functor_lock);
+	WorkerThread(shared_ptr<std::deque<shared_ptr<FunctorInt> > > functor_queue, shared_ptr<mutex> functor_lock);
 
 	virtual ~WorkerThread();
 
 	void startThread(void);
 	void stopThread(void);
-
-private:
-	/**
-	 * worker thread object
-	 */
-	unique_ptr<std::thread> m_worker_thread;
-	/**
-	 * running flag for worker thread
-	 *
-	 */
-	bool m_running;
-
-	/**
-	 * thread function for worker thread
-	 * - loop over functor list(hold from threadpool)
-	 * - call functior function
-	 * - destroy functor object (if destroy flag is set)
-	 */
-	virtual void thread_function (void);
 };
 
 } /* namespace common_cpp */

@@ -76,7 +76,7 @@ public:
 	PrioThreadPoolInt(){}
 	virtual ~PrioThreadPoolInt(){}
 	
-	virtual void addPrioFunctor(shared_ptr<PrioFunctorInt> work) = 0;
+	virtual bool addPrioFunctor(shared_ptr<PrioFunctorInt> work) = 0;
 	
 };
 
