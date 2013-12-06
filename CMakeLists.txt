@@ -18,19 +18,30 @@ endif()
 
 add_subdirectory(ext)
 
+#message(FATAL_ERROR ${EXT_INC})
+
 #default includes
+
+set(INC
+    "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${EXT_INC}"
+	)
+
+set(${PROJECT_NAME}_INC
+    "${INC}"
+    PARENT_SCOPE
+	)
+
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
-    ${EXT_INC}
+    ${INC}
 )
 
-
-set(SOURCE
+set(${PROJECT_NAME}_SRC
 	src/Logger.cpp
 	${EXT_SRC}
 	)
 	
-add_library(${PROJECT_NAME}-shared SHARED  ${SOURCE})
+add_library(${PROJECT_NAME}-shared SHARED  ${${PROJECT_NAME}_SRC})
 
 target_link_libraries(${PROJECT_NAME}-shared
 	${Boost_LIBRARIES}
