@@ -16,16 +16,18 @@ else()
   FIND_PACKAGE(Boost COMPONENTS thread system serialization chrono REQUIRED)
 endif()
 
+add_subdirectory(ext)
 
 #default includes
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include/ThreadPoolInt)
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${EXT_INC}
+)
 
 
 set(SOURCE
 	src/Logger.cpp
-	src/ThreadPool.cpp
-	src/WorkerThread.cpp
+	${EXT_SRC}
 	)
 	
 add_library(${PROJECT_NAME}-shared SHARED  ${SOURCE})
