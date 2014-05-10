@@ -51,6 +51,24 @@ add_executable (TestPool
     ${POOL_SRC} )
 
 
+##TheadPool logging
+#add_definitions( "-DThreadPool_log_error=printf" )
+#add_definitions( "-DThreadPool_log_info=printf" )
+#add_definitions( "-DThreadPool_log_debug=printf" )
+#add_definitions( "-DThreadPool_log_trace=printf" )
+
+##worker thread logging
+#add_definitions( "-DWorkerThread_log_error=printf" )
+#add_definitions( "-DWorkerThread_log_info=printf" )
+#add_definitions( "-DWorkerThread_log_debug=printf" )
+#add_definitions( "-DWorkerThread_log_trace=printf" )
+
+##dummy functor logging
+#add_definitions( "-DDummy_Functor_log_error=printf" )
+#add_definitions( "-DDummy_Functor_log_info=printf" )
+#add_definitions( "-DDummy_Functor_log_debug=printf" )
+#add_definitions( "-DDummy_Functor_log_trace=printf" )
+
 if(C++11 AND USE_C++11_SUPPORT)
   #enable c++11
   enable_cxx11()
