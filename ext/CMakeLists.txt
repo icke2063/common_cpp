@@ -5,6 +5,7 @@ option(${PROJECT_NAME}_NO_PRIORITY_TP_SUPPORT "remove support for priority threa
 
 
 set(POOL_INC
+	"${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/config/"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/include/"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/include/ThreadPoolInt"
 	)
