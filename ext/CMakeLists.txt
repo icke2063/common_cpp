@@ -46,11 +46,12 @@ if(${PROJECT_NAME}_NO_PRIORITY_TP_SUPPORT)
 endif()	
 
 
-add_executable (TestPool 
-    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/src/TestPool.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/src/DummyFunctor.cpp
-    ${POOL_SRC} )
-
+add_executable(pool_test 
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/unittest/pool_test.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/unittest/TestPool.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/unittest/DummyFunctor.cpp
+    ${POOL_SRC}
+    )
 
 ##TheadPool logging
 #add_definitions( "-DThreadPool_log_error=printf" )
@@ -70,13 +71,15 @@ add_executable (TestPool
 #add_definitions( "-DDummy_Functor_log_debug=printf" )
 #add_definitions( "-DDummy_Functor_log_trace=printf" )
 
+
+
+
 if(C++11 AND USE_C++11_SUPPORT)
   #enable c++11
   enable_cxx11()
-  target_link_libraries(TestPool pthread)
+  target_link_libraries(pool_test pthread)
 else()
     FIND_PACKAGE(Boost COMPONENTS thread system serialization chrono REQUIRED)
-    target_link_libraries(TestPool ${Boost_LIBRARIES})
+    target_link_libraries(pool_test ${Boost_LIBRARIES})
 endif()
-
 
