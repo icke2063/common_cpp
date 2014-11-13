@@ -25,6 +25,8 @@
 #ifndef CONVERT_H_
 #define CONVERT_H_
 
+#include <endian.h>
+
 namespace icke2063 {
 namespace common_cpp {
 
@@ -39,11 +41,10 @@ public:
 	 * @param src	source pointer
 	 * @param count	count of values (short) to convert
 	 */
-	virtual void ShorttoBigEndian(uint8_t *dst, const uint16_t *src, size_t count){
+	virtual void ShorttoBigEndian(uint16_t *dst, const uint16_t *src, size_t count){
 		size_t i;
 		for(i=0;i<count;i++){
-			dst[2*i] 		= (uint8_t)(src[i]>>8);		//high
-			dst[(2*i)+1]	= (uint8_t)(src[i]);	//low
+			dst[i] = htobe16(src[i]);
 		}
 	}
 
@@ -53,11 +54,10 @@ public:
 	 * @param src	source pointer
 	 * @param count	count of values(short) to convert
 	 */
-	virtual void BigEndiantoShort(uint16_t *dst, const uint8_t *src, size_t count){
+	virtual void BigEndiantoShort(uint16_t *dst, const uint16_t *src, size_t count){
 		size_t i;
 		for(i=0;i<count;i++){
-			dst[i] 	= (uint16_t)(src[2*i]<<8);	//high
-			dst[i]	|= (uint16_t)(src[(2*i)+1]);	//low
+			dst[i] = be16toh(src[i]);
 		}
 	}
 
