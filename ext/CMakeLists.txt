@@ -1,11 +1,35 @@
+if(C++11 AND USE_C++11_SUPPORT)
+
+else()
+SET(ICKE2063_THREADPOOL_NO_CPP11 1)
+endif()
 
 option(${PROJECT_NAME}_NO_DELAYED_TP_SUPPORT "remove support for delayed threadpool" OFF)
 option(${PROJECT_NAME}_NO_DYNAMIC_TP_SUPPORT "remove support for dynamic threadpool" OFF)
 option(${PROJECT_NAME}_NO_PRIORITY_TP_SUPPORT "remove support for priority threadpool" OFF)
 
 
+if(${PROJECT_NAME}_NO_DELAYED_TP_SUPPORT)
+    SET(NO_DELAYED_TP_SUPPORT 1)
+endif()	
+
+if(${PROJECT_NAME}_NO_DYNAMIC_TP_SUPPORT)
+    SET(NO_DYNAMIC_TP_SUPPORT 1)
+endif()	
+
+if(${PROJECT_NAME}_NO_PRIORITY_TP_SUPPORT)
+    SET(NO_PRIORITY_TP_SUPPORT 1)
+endif()
+
+
+configure_file(
+	${CMAKE_CURRENT_SOURCE_DIR}/icke2063_TP_config.h.in
+	${CMAKE_CURRENT_BINARY_DIR}/ThreadPool/config/icke2063_TP_config.h
+)
+
+
 set(POOL_INC
-	"${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/config/"
+	"${CMAKE_CURRENT_BINARY_DIR}/ThreadPool/config/"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/include/"
 	"${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/include/ThreadPoolInt"
 	)
@@ -32,20 +56,6 @@ include_directories(
     ${POOL_INC}
 	)
 	
-if(${PROJECT_NAME}_NO_DELAYED_TP_SUPPORT)
-    add_definitions( "-DNO_DELAYED_TP_SUPPORT=1" )
-endif()	
-	
-
-if(${PROJECT_NAME}_NO_DYNAMIC_TP_SUPPORT)
-    add_definitions( "-DNO_DYNAMIC_TP_SUPPORT=1" )
-endif()	
-
-if(${PROJECT_NAME}_NO_PRIORITY_TP_SUPPORT)
-    add_definitions( "-DNO_PRIORITY_TP_SUPPORT=1" )
-endif()	
-
-
 add_executable(pool_test 
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/unittest/pool_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ThreadPool/unittest/TestPool.cpp
