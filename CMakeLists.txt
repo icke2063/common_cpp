@@ -37,10 +37,9 @@ include_directories(
 )
 
 set(${PROJECT_NAME}_SRC
-	src/Logger.cpp
 	${EXT_SRC}
 	)
-	
+		
 add_library(${PROJECT_NAME}-shared SHARED  ${${PROJECT_NAME}_SRC})
 
 target_link_libraries(${PROJECT_NAME}-shared

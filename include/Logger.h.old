@@ -23,7 +23,10 @@
 #ifndef LOGGER_H_
 #define LOGGER_H_
 
-#include "log4cpp/Category.hh"
+
+#include <getopt.h>
+
+#include <log4cpp/Category.hh>
 #include "log4cpp/Appender.hh"
 #include "log4cpp/FileAppender.hh"
 #include "log4cpp/OstreamAppender.hh"
