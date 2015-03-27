@@ -47,4 +47,38 @@
  * Uncomment this to remove priority function support from threadpool
  */
 #cmakedefine NO_PRIORITY_TP_SUPPORT
+
+
+/*
+ * logging stuff
+ */
+#include <@LOGGING_PREFIX@_logging_macros.h>
+
+#cmakedefine ICKE2063_TRHEADPOOL_LOG_SUPPORT
+
+#ifdef ICKE2063_TRHEADPOOL_LOG_SUPPORT
+	#define ThreadPool_log_error	@LOGGING_PREFIX@_ERROR_WRITE
+	#define ThreadPool_log_info		@LOGGING_PREFIX@_INFO_WRITE
+	#define ThreadPool_log_debug	@LOGGING_PREFIX@_DEBUG_WRITE
+	#define ThreadPool_log_trace	@LOGGING_PREFIX@_DEBUG_WRITE
+#endif
+
+//worker thread logging
+#cmakedefine ICKE2063_WORKERTHREAD_LOG_SUPPORT
+#ifdef ICKE2063_WORKERTHREAD_LOG_SUPPORT
+	#define WorkerThread_log_error	@LOGGING_PREFIX@_ERROR_WRITE
+	#define WorkerThread_log_info	@LOGGING_PREFIX@_INFO_WRITE
+	#define WorkerThread_log_debug	@LOGGING_PREFIX@_DEBUG_WRITE
+	#define WorkerThread_log_trace	@LOGGING_PREFIX@_DEBUG_WRITE
+#endif
+
+//dummy functor logging
+#cmakedefine ICKE2063_DUMMY_LOG_SUPPORT
+#ifdef ICKE2063_DUMMY_LOG_SUPPORT
+	#define Dummy_Functor_log_error	@LOGGING_PREFIX@_ERROR_WRITE
+	#define Dummy_Functor_log_info	@LOGGING_PREFIX@_INFO_WRITE
+	#define Dummy_Functor_log_debug	@LOGGING_PREFIX@_DEBUG_WRITE
+	#define Dummy_Functor_log_trace	@LOGGING_PREFIX@_DEBUG_WRITE
+#endif
+
 #endif /* ICKE2063_TP_CONFIG_H_ */
