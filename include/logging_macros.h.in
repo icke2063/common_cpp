@@ -36,8 +36,8 @@ extern struct logging @LOGGING_PREFIX@_handle;
 #define @LOGGING_PREFIX@_SET_LOG_FN(fn)			@LOGGING_PREFIX@_handle.log_fn = fn;
 #define @LOGGING_PREFIX@_SET_LOG_LEVEL(level)	@LOGGING_PREFIX@_handle.loglevel = level;
 
-#define @PROJECT_NAME@@SUFFIX@_GET_LOG_FN		@LOGGING_PREFIX@_handle.log_fn
-#define @PROJECT_NAME@@SUFFIX@_GET_LOG_LEVEL	@LOGGING_PREFIX@_handle.loglevel
+#define @LOGGING_PREFIX@_GET_LOG_FN				@LOGGING_PREFIX@_handle.log_fn
+#define @LOGGING_PREFIX@_GET_LOG_LEVEL			@LOGGING_PREFIX@_handle.loglevel
 
 /* syslog specific level
  * LOG_EMERG	0
