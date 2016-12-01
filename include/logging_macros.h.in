@@ -50,14 +50,14 @@ extern struct logging @LOGGING_PREFIX@_handle;
  * LOG_DEBUG	7	
  */
 
-#define @LOGGING_PREFIX@_EMERG_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_EMERG, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_ALERT_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_ALERT, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_CRIT_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_CRIT, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_ERROR_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_ERR, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_WARN_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_NOTICE_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_NOTICE, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_INFO_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_INFO, __FILE__, __LINE__, __FUNCTION__, ## arg)
-#define @LOGGING_PREFIX@_DEBUG_WRITE(arg...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, ## arg)
+#define @LOGGING_PREFIX@_EMERG_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_EMERG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_ALERT_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_ALERT, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_CRIT_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_CRIT, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_ERROR_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_ERR, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_WARN_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_WARNING, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_NOTICE_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_NOTICE, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_INFO_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_INFO, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
+#define @LOGGING_PREFIX@_DEBUG_WRITE(...) write_to_log(&@LOGGING_PREFIX@_handle, LOG_DEBUG, __FILE__, __LINE__, __FUNCTION__, __VA_ARGS__)
 
 
 //void @LOGGING_PREFIX@_logging(int loglevel, const char *file, int line, const char *fn,
