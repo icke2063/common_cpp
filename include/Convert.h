@@ -41,7 +41,7 @@ public:
 	 * @param src	source pointer
 	 * @param count	count of values (short) to convert
 	 */
-	virtual void ShorttoBigEndian(uint16_t *dst, const uint16_t *src, size_t count){
+	static void ShorttoBigEndian(uint16_t *dst, const uint16_t *src, size_t count){
 		size_t i;
 		for(i=0;i<count;i++){
 			dst[i] = htobe16(src[i]);
@@ -54,7 +54,7 @@ public:
 	 * @param src	source pointer
 	 * @param count	count of values(short) to convert
 	 */
-	virtual void BigEndiantoShort(uint16_t *dst, const uint16_t *src, size_t count){
+	static void BigEndiantoShort(uint16_t *dst, const uint16_t *src, size_t count){
 		size_t i;
 		for(i=0;i<count;i++){
 			dst[i] = be16toh(src[i]);
