@@ -2,6 +2,7 @@ cmake_minimum_required (VERSION 2.6)
 project (common_cpp)
 
 option(USE_C++11_SUPPORT "use c++11 if available" ON)
+option(common_cpp_I2C_SUPPORT "compile with I2C support" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CXX11-CMake-Macros")
 
@@ -18,16 +19,14 @@ endif()
 
 add_subdirectory(ext)
 
-#message(FATAL_ERROR ${EXT_INC})
-
 #default includes
-
 set(INC
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
+    "${CMAKE_CURRENT_BINARY_DIR}"
     "${EXT_INC}"
 	)
 
-set(${PROJECT_NAME}_INC
+set(common_cpp_INC
     "${INC}"
     PARENT_SCOPE
 	)
@@ -36,15 +35,38 @@ include_directories(
     ${INC}
 )
 
-set(${PROJECT_NAME}_SRC
-	${EXT_SRC}
+set(common_cpp_SRC
+    ${EXT_SRC}
 	)
-		
-add_library(${PROJECT_NAME}-shared SHARED  ${${PROJECT_NAME}_SRC})
 
+if(common_cpp_I2C_SUPPORT)
+
+    # generate i2c logging files
+    SET(LOGGING_PREFIX i2c)
+    configure_file(
+    	include/logging_macros.h.in
+    	${CMAKE_CURRENT_BINARY_DIR}/${LOGGING_PREFIX}_logging_macros.h
+    )
+    
+    configure_file(
+    	include/logging_macros.c.in
+    	${CMAKE_CURRENT_BINARY_DIR}/${LOGGING_PREFIX}_logging_macros.c
+    )
+        
+    set(common_cpp_SRC ${common_cpp_SRC}
+        "src/I2CComm.cpp"
+        ${CMAKE_CURRENT_BINARY_DIR}/${LOGGING_PREFIX}_logging_macros.c
+	)
+	
+    UNSET(LOGGING_PREFIX)
+endif(common_cpp_I2C_SUPPORT)
+		
 target_link_libraries(${PROJECT_NAME}-shared
 	${Boost_LIBRARIES}
   )
+add_library(common_cpp-shared SHARED  
+       ${common_cpp_SRC}
+    )
 
 install(TARGETS ${PROJECT_NAME}-shared
 	LIBRARY DESTINATION lib
