@@ -1,20 +1,16 @@
 cmake_minimum_required (VERSION 2.6)
 project (common_cpp)
 
-option(USE_C++11_SUPPORT "use c++11 if available" ON)
 option(common_cpp_I2C_SUPPORT "compile with I2C support" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CXX11-CMake-Macros")
-
 include(CXX11)
-
 check_for_cxx11_compiler(C++11)
-
 if(C++11 AND USE_C++11_SUPPORT)
-  #enable c++11
-  enable_cxx11()
+    #enable c++11
+    enable_cxx11()
 else()
-  FIND_PACKAGE(Boost COMPONENTS thread system serialization chrono REQUIRED)
+    message(FATAL_ERROR "No C++11 support")
 endif()
 
 add_subdirectory(ext)
@@ -60,10 +56,8 @@ if(common_cpp_I2C_SUPPORT)
 	
     UNSET(LOGGING_PREFIX)
 endif(common_cpp_I2C_SUPPORT)
+
 		
-target_link_libraries(${PROJECT_NAME}-shared
-	${Boost_LIBRARIES}
-  )
 add_library(common_cpp-shared SHARED  
        ${common_cpp_SRC}
     )

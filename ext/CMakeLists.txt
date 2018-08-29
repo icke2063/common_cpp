@@ -82,12 +82,11 @@ add_executable(pool_test
 UNSET(LOGGING_PREFIX)
 
 
-if(C++11 AND USE_C++11_SUPPORT)
+if(C++11)
   #enable c++11
   enable_cxx11()
   target_link_libraries(pool_test pthread)
 else()
-    FIND_PACKAGE(Boost COMPONENTS thread system serialization chrono REQUIRED)
-    target_link_libraries(pool_test ${Boost_LIBRARIES})
+    message(FATAL_ERROR "No C++11 support")
 endif()
 
