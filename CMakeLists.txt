@@ -2,13 +2,15 @@ cmake_minimum_required (VERSION 2.6)
 project (common_cpp)
 
 option(common_cpp_I2C_SUPPORT "compile with I2C support" ON)
+option(common_cpp_USE_C++11_SUPPORT "compile with C++11 support" ON)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/CXX11-CMake-Macros")
 include(CXX11)
 check_for_cxx11_compiler(C++11)
-if(C++11 AND USE_C++11_SUPPORT)
+if(C++11 AND common_cpp_USE_C++11_SUPPORT)
     #enable c++11
     enable_cxx11()
+    SET(USE_C++11_SUPPORT 1)
 else()
     message(FATAL_ERROR "No C++11 support")
 endif()
